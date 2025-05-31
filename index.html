@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>さわやか最速チェッカー</title>
+  <style>
+    body { font-family: sans-serif; padding: 1em; background: #fffaf0; }
+    h1 { font-size: 1.5em; margin-bottom: 0.5em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #999; padding: 0.5em; text-align: center; }
+    .note { font-size: 0.8em; color: #666; margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h1>📍 いま一番早く「さわやか」に座れるのは？</h1>
+  <p>現在地を取得中…</p>
+  <table id="resultTable" style="display:none;">
+    <thead>
+      <tr><th>店舗</th><th>移動時間</th><th>待ち時間</th><th>合計</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p class="note">※待ち時間は仮データです</p>
+
+  <script>
+    const shops = [
+      { name: "静岡池田店", lat: 34.98688, lng: 138.40941, waitMinutes: 60 },
+      { name: "御殿場インター店", lat: 35.30633, lng: 138.93194, waitMinutes: 350 },
+      { name: "浜松有玉店", lat: 34.76216, lng: 137.76286, waitMinutes: 10 }
+    ];
+
+    function getRoutes(from) {
+      const promises = shops.map(shop => {
+        const url = `https://routes.googleapis.com/directions/v2:computeRoutes`;
+        const body = {
+          origin: { location: { latLng: from } },
+          destination: { location: { latLng: { latitude: shop.lat, longitude: shop.lng } } },
+          travelMode: "TRANSIT",
+          transitPreferences: {
+            allowedTravelModes: ["TRAIN"]
+          },
+          languageCode: "ja",
+          routingPreference: "TRAFFIC_AWARE"
+        };
+
+        return fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": "YOUR_GOOGLE_API_KEY_HERE"
+          },
+          body: JSON.stringify(body)
+        }).then(res => res.json()).then(data => {
+          const duration = data.routes?.[0]?.duration?.split("s")[0] / 60 || 9999;
+          return {
+            ...shop,
+            travelMinutes: Math.round(duration),
+            totalMinutes: Math.round(duration + shop.waitMinutes)
+          };
+        }).catch(() => ({
+          ...shop,
+          travelMinutes: 9999,
+          totalMinutes: 9999
+        }));
+      });
+
+      return Promise.all(promises);
+    }
+
+    function renderTable(results) {
+      const table = document.getElementById("resultTable");
+      const tbody = table.querySelector("tbody");
+      tbody.innerHTML = "";
+      results.sort((a, b) => a.totalMinutes - b.totalMinutes).forEach(shop => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${shop.name}</td>
+          <td>${shop.travelMinutes}分</td>
+          <td>${shop.waitMinutes}分</td>
+          <td><strong>${shop.totalMinutes}分</strong></td>
+        `;
+        tbody.appendChild(row);
+      });
+      table.style.display = "";
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude } = pos.coords;
+        document.querySelector("p").textContent = "ルート計算中…";
+
+        getRoutes({ latitude, longitude }).then(results => {
+          renderTable(results);
+        });
+      },
+      err => {
+        document.querySelector("p").textContent = "位置情報の取得に失敗しました";
+      }
+    );
+  </script>
+</body>
+</html>
