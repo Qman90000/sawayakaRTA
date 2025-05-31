@@ -14,7 +14,7 @@
 </head>
 <body>
   <h1>📍 いま一番早く「さわやか」に座れるのは？</h1>
-  <p>現在地を取得中…</p>
+  <p id="status">現在地を取得中…</p>
   <table id="resultTable" style="display:none;">
     <thead>
       <tr><th>店舗</th><th>移動時間</th><th>待ち時間</th><th>合計</th></tr>
@@ -44,25 +44,35 @@
           routingPreference: "TRAFFIC_AWARE"
         };
 
+        console.log("📡 APIリクエスト:", body);
+
         return fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Goog-Api-Key": "AIzaSyBFzFPWDZuPAAmmuxfzrQR74eiAocouz3w"
+            "X-Goog-Api-Key": "AIzaSyBFzFPWDZuPAAmmuxfzrQR74eiAocuoz3w"  // ← Qさんのキー
           },
           body: JSON.stringify(body)
-        }).then(res => res.json()).then(data => {
+        })
+        .then(res => res.json())
+        .then(data => {
+          console.log("✅ APIレスポンス:", data);
           const duration = data.routes?.[0]?.duration?.split("s")[0] / 60 || 9999;
           return {
             ...shop,
             travelMinutes: Math.round(duration),
             totalMinutes: Math.round(duration + shop.waitMinutes)
           };
-        }).catch(() => ({
-          ...shop,
-          travelMinutes: 9999,
-          totalMinutes: 9999
-        }));
+        })
+        .catch(error => {
+          console.error("❌ API通信エラー:", error);
+          document.getElementById("status").textContent = "ルート取得エラー（API）";
+          return {
+            ...shop,
+            travelMinutes: 9999,
+            totalMinutes: 9999
+          };
+        });
       });
 
       return Promise.all(promises);
@@ -83,19 +93,22 @@
         tbody.appendChild(row);
       });
       table.style.display = "";
+      document.getElementById("status").textContent = "ルート計算完了！";
     }
 
     navigator.geolocation.getCurrentPosition(
       pos => {
         const { latitude, longitude } = pos.coords;
-        document.querySelector("p").textContent = "ルート計算中…";
+        console.log("📍 位置取得成功:", latitude, longitude);
+        document.getElementById("status").textContent = "ルート計算中…";
 
         getRoutes({ latitude, longitude }).then(results => {
           renderTable(results);
         });
       },
       err => {
-        document.querySelector("p").textContent = "位置情報の取得に失敗しました";
+        console.error("❌ 位置情報取得失敗:", err);
+        document.getElementById("status").textContent = "位置情報の取得に失敗しました";
       }
     );
   </script>
