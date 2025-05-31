@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ã•ã‚ã‚„ã‹æœ€é€Ÿãƒã‚§ãƒƒã‚«ãƒ¼</title>
+  <title>‚³‚í‚â‚©Å‘¬ƒ`ƒFƒbƒJ[</title>
   <style>
     body { font-family: sans-serif; padding: 1em; background: #fffaf0; }
     h1 { font-size: 1.5em; margin-bottom: 0.5em; }
@@ -13,66 +13,53 @@
   </style>
 </head>
 <body>
-  <h1>ğŸ“ ã„ã¾ä¸€ç•ªæ—©ãã€Œã•ã‚ã‚„ã‹ã€ã«åº§ã‚Œã‚‹ã®ã¯ï¼Ÿ</h1>
-  <p id="status">ç¾åœ¨åœ°ã‚’å–å¾—ä¸­â€¦</p>
+  <h1>? ‚¢‚Üˆê”Ô‘‚­u‚³‚í‚â‚©v‚ÉÀ‚ê‚é‚Ì‚ÍH</h1>
+  <p id="status">Œ»İ’n‚ğæ“¾’†c</p>
   <table id="resultTable" style="display:none;">
     <thead>
-      <tr><th>åº—èˆ—</th><th>ç§»å‹•æ™‚é–“</th><th>å¾…ã¡æ™‚é–“</th><th>åˆè¨ˆ</th></tr>
+      <tr><th>“X•Ü</th><th>ˆÚ“®ŠÔ</th><th>‘Ò‚¿ŠÔ</th><th>‡Œv</th></tr>
     </thead>
     <tbody></tbody>
   </table>
-  <p class="note">â€»å¾…ã¡æ™‚é–“ã¯ä»®ãƒ‡ãƒ¼ã‚¿ã§ã™</p>
+  <p class="note">¦‘Ò‚¿ŠÔ‚Í‰¼ƒf[ƒ^‚Å‚·</p>
 
   <script>
     const shops = [
-      { name: "é™å²¡æ± ç”°åº—", lat: 34.98688, lng: 138.40941, waitMinutes: 60 },
-      { name: "å¾¡æ®¿å ´ã‚¤ãƒ³ã‚¿ãƒ¼åº—", lat: 35.30633, lng: 138.93194, waitMinutes: 350 },
-      { name: "æµœæ¾æœ‰ç‰åº—", lat: 34.76216, lng: 137.76286, waitMinutes: 10 }
+      { name: "Ã‰ª’r“c“X", lat: 34.98688, lng: 138.40941, waitMinutes: 60 },
+      { name: "Œä“aêƒCƒ“ƒ^[“X", lat: 35.30633, lng: 138.93194, waitMinutes: 350 },
+      { name: "•l¼—L‹Ê“X", lat: 34.76216, lng: 137.76286, waitMinutes: 10 }
     ];
+
+    const API_KEY = "AIzaSyBFzFPWDZuPAAmmuxfzrQR74eiAocouz3w";  // © Q‚³‚ñ‚ÌAPIƒL[
 
     function getRoutes(from) {
       const promises = shops.map(shop => {
-        const url = `https://routes.googleapis.com/directions/v2:computeRoutes`;
-        const body = {
-          origin: { location: { latLng: from } },
-          destination: { location: { latLng: { latitude: shop.lat, longitude: shop.lng } } },
-          travelMode: "TRANSIT",
-          transitPreferences: {
-            allowedTravelModes: ["TRAIN"]
-          },
-          languageCode: "ja",
-          routingPreference: "TRAFFIC_AWARE"
-        };
+        const origin = `${from.latitude},${from.longitude}`;
+        const destination = `${shop.lat},${shop.lng}`;
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=transit&key=${API_KEY}`;
 
-        console.log("ğŸ“¡ APIãƒªã‚¯ã‚¨ã‚¹ãƒˆ:", body);
+        console.log("? ‘—M:", url);
 
-        return fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Goog-Api-Key": "AIzaSyBFzFPWDZuPAAmmuxfzrQR74eiAocuoz3w"  // â† Qã•ã‚“ã®ã‚­ãƒ¼
-          },
-          body: JSON.stringify(body)
-        })
-        .then(res => res.json())
-        .then(data => {
-          console.log("âœ… APIãƒ¬ã‚¹ãƒãƒ³ã‚¹:", data);
-          const duration = data.routes?.[0]?.duration?.split("s")[0] / 60 || 9999;
-          return {
-            ...shop,
-            travelMinutes: Math.round(duration),
-            totalMinutes: Math.round(duration + shop.waitMinutes)
-          };
-        })
-        .catch(error => {
-          console.error("âŒ APIé€šä¿¡ã‚¨ãƒ©ãƒ¼:", error);
-          document.getElementById("status").textContent = "ãƒ«ãƒ¼ãƒˆå–å¾—ã‚¨ãƒ©ãƒ¼ï¼ˆAPIï¼‰";
-          return {
-            ...shop,
-            travelMinutes: 9999,
-            totalMinutes: 9999
-          };
-        });
+        return fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`)
+          .then(res => res.json())
+          .then(data => {
+            const durationSec = data.routes?.[0]?.legs?.[0]?.duration?.value || 9999 * 60;
+            const travelMinutes = Math.round(durationSec / 60);
+            return {
+              ...shop,
+              travelMinutes,
+              totalMinutes: travelMinutes + shop.waitMinutes
+            };
+          })
+          .catch(error => {
+            console.error("? API’ÊMƒGƒ‰[:", error);
+            document.getElementById("status").textContent = "ƒ‹[ƒgæ“¾ƒGƒ‰[iAPIj";
+            return {
+              ...shop,
+              travelMinutes: 9999,
+              totalMinutes: 9999 + shop.waitMinutes
+            };
+          });
       });
 
       return Promise.all(promises);
@@ -86,29 +73,26 @@
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${shop.name}</td>
-          <td>${shop.travelMinutes}åˆ†</td>
-          <td>${shop.waitMinutes}åˆ†</td>
-          <td><strong>${shop.totalMinutes}åˆ†</strong></td>
+          <td>${shop.travelMinutes}•ª</td>
+          <td>${shop.waitMinutes}•ª</td>
+          <td><strong>${shop.totalMinutes}•ª</strong></td>
         `;
         tbody.appendChild(row);
       });
       table.style.display = "";
-      document.getElementById("status").textContent = "ãƒ«ãƒ¼ãƒˆè¨ˆç®—å®Œäº†ï¼";
+      document.getElementById("status").textContent = "ƒ‹[ƒgŒvZŠ®—¹I";
     }
 
     navigator.geolocation.getCurrentPosition(
       pos => {
         const { latitude, longitude } = pos.coords;
-        console.log("ğŸ“ ä½ç½®å–å¾—æˆåŠŸ:", latitude, longitude);
-        document.getElementById("status").textContent = "ãƒ«ãƒ¼ãƒˆè¨ˆç®—ä¸­â€¦";
-
-        getRoutes({ latitude, longitude }).then(results => {
-          renderTable(results);
-        });
+        console.log("? ˆÊ’uæ“¾¬Œ÷:", latitude, longitude);
+        document.getElementById("status").textContent = "ƒ‹[ƒgŒvZ’†c";
+        getRoutes({ latitude, longitude }).then(renderTable);
       },
       err => {
-        console.error("âŒ ä½ç½®æƒ…å ±å–å¾—å¤±æ•—:", err);
-        document.getElementById("status").textContent = "ä½ç½®æƒ…å ±ã®å–å¾—ã«å¤±æ•—ã—ã¾ã—ãŸ";
+        console.error("? ˆÊ’uî•ñæ“¾¸”s:", err);
+        document.getElementById("status").textContent = "ˆÊ’uî•ñ‚Ìæ“¾‚É¸”s‚µ‚Ü‚µ‚½";
       }
     );
   </script>
